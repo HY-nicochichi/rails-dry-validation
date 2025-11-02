@@ -21,10 +21,10 @@ end
 # <Your Rails App>/app/controllers/user_controller.rb
 class UserController < ApplicationController
   def create
-    user = User.create!(@valid_data) 
-    render json: user.as_json, status: 201
-  end
+    valid_data = validate_data params, schema: UserCreateSchema
 
-  validate_params_with UserCreateSchema, action: :create
+    user = User.create!(valid_data) 
+    render plain: "User '#{valid_data[:name]}' created", status: 201
+  end
 end
 ```

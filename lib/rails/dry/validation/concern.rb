@@ -3,29 +3,29 @@ module Rails
     module Validation
 
       module Concern
-        extend ActiveSupport::Concern
+        rescue_from Rails::Dry::Validation::ValidationFailed, with: :render_validation_failed
 
-        class_methods do
-          def validate_params_with(schema, action:)
-            alias_method "original_#{action}".to_sym, action 
-            private "original_#{action}".to_sym
-            define_method(action) do |*args|
-              return gen_valid_data(schema) do |valid_data|
-                @valid_data = valid_data
-                send("original_#{action}".to_sym, *args)
-              end
-            end
-          end
+        def render_validation_failed(error)
+          render json: {msg: error.message, detail: error.detail}, status: 422
         end
 
-        def gen_valid_data(schema)
-          result = schema.new.call(
-            params.to_unsafe_h.except(:controller, :action, :format)
-          )
+        def validate_data(data = {}, schema: nil)
+          data_hash = case data
+                      when ActionController::Parameters
+                        data.to_unsafe_h.except(:controller, :action, :format)
+                      when Hash
+                        data.except("controller", "action", "format")
+                      else
+                        raise Rails::Dry::Validation::InvalidData.new("In validate_data, data must be params/hash")
+                      end
+          unless schema&.ancestors&.include?(Dry::Validation::Contract)
+            raise Rails::Dry::Validation::InvalidSchema.new("In validate_data, schema must extend Dry::Validation::Contract")
+          end
+          result = schema.new.call(data_hash)
           if result.success?
-            yield result.to_h
+            result.to_h
           else
-            return render json: {msg: 'Validation failed', detail: result.errors.to_h}, status: 422
+            raise Rails::Dry::Validation::ValidationFailed.new("Validation failed", result.errors.to_h)
           end
         end
       end
