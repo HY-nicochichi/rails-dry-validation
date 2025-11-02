@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name    = "rails-dry-validation"
-  spec.version = "1.0.2"
+  spec.version = "1.0.3"
   spec.authors = ["HY-nicochichi"]
   spec.summary = "A schema based validation Gem for Rails params"
 
